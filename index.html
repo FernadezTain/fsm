@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FSM — Fernie Server Mod</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-0:#0a0714;
+  --bg-1:#120c24;
+  --bg-2:#1a1230;
+  --violet:#a78bfa;
+  --violet-soft:#7c6bb0;
+  --gold:#e8b954;
+  --sky:#5ec8e8;
+  --purple-deep:#c084fc;
+  --slate:#8892a6;
+  --ink:#efeaf9;
+  --ink-dim:#b3a9cf;
+  --ink-faint:#786f96;
+  --glass-bg: rgba(255,255,255,0.045);
+  --glass-bg-hover: rgba(255,255,255,0.075);
+  --glass-border: rgba(190,170,255,0.16);
+  --glass-border-hover: rgba(190,170,255,0.35);
+  --r-lg: 22px;
+  --r-md: 16px;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:
+    radial-gradient(1100px 700px at 12% -8%, rgba(124,92,196,0.35), transparent 60%),
+    radial-gradient(900px 600px at 95% 10%, rgba(94,200,232,0.10), transparent 55%),
+    radial-gradient(1200px 900px at 50% 110%, rgba(140,80,220,0.18), transparent 60%),
+    var(--bg-0);
+  color:var(--ink);
+  font-family:'Manrope', sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+  position:relative;
+}
+body::before{
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;
+  z-index:0;
+  mask-image: radial-gradient(circle at 50% 30%, black, transparent 75%);
+}
+.wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 28px;}
+
+/* ---------- HERO ---------- */
+header.hero{padding:76px 0 40px;}
+.crest-row{display:flex; align-items:center; gap:10px; margin-bottom:34px; flex-wrap:wrap;}
+.crest-tier{
+  display:flex; align-items:center; gap:8px;
+  font-family:'JetBrains Mono', monospace; font-size:11.5px; letter-spacing:.04em;
+  color:var(--ink-faint); padding:6px 12px 6px 8px; border-radius:999px;
+  border:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.02);
+}
+.crest-dot{width:9px; height:9px; border-radius:50%; box-shadow:0 0 10px currentColor;}
+.crest-tier.active{color:var(--ink); border-color:var(--glass-border);}
+.crest-arrow{color:var(--ink-faint); font-size:12px; opacity:.5;}
+
+.brand-line{display:flex; align-items:baseline; gap:18px; flex-wrap:wrap;}
+.brand-mark{
+  font-family:'Cinzel', serif; font-weight:700; font-size:clamp(56px,10vw,108px);
+  line-height:.9; letter-spacing:.01em;
+  background:linear-gradient(135deg, #f3ecff 0%, var(--violet) 55%, var(--gold) 100%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 0 40px rgba(167,139,250,0.25));
+}
+.brand-sub{font-family:'Cinzel', serif; font-weight:500; font-size:clamp(16px,2vw,22px); color:var(--ink-dim); letter-spacing:.03em;}
+
+.hero-desc{
+  margin-top:26px; max-width:760px; font-size:16.5px; line-height:1.75; color:var(--ink-dim);
+}
+.hero-desc b{color:var(--ink); font-weight:700;}
+.hero-tags{display:flex; flex-wrap:wrap; gap:9px; margin-top:26px;}
+.hero-tag{
+  font-size:12.5px; padding:7px 14px; border-radius:999px; color:var(--ink-dim);
+  border:1px solid var(--glass-border); background:var(--glass-bg);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+}
+
+/* ---------- NAV DOTS (category jump) ---------- */
+.jumpnav{
+  display:flex; gap:8px; flex-wrap:wrap; margin-top:34px; padding-top:26px;
+  border-top:1px solid rgba(255,255,255,0.06);
+}
+.jumpnav a{
+  font-size:12.5px; color:var(--ink-faint); text-decoration:none; padding:6px 13px;
+  border-radius:999px; border:1px solid transparent; transition:.2s;
+}
+.jumpnav a:hover{color:var(--violet); border-color:var(--glass-border); background:var(--glass-bg);}
+
+/* ---------- SECTIONS ---------- */
+.section{padding:54px 0 8px;}
+.section-head{display:flex; align-items:baseline; gap:16px; margin-bottom:22px;}
+.section-num{font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--violet-soft);}
+.section-title{font-family:'Cinzel', serif; font-weight:600; font-size:26px; color:var(--ink);}
+.section-line{flex:1; height:1px; background:linear-gradient(90deg, rgba(190,170,255,0.25), transparent);}
+
+.card-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(270px,1fr)); gap:16px;
+}
+.card{
+  position:relative; cursor:pointer; text-align:left;
+  padding:22px 22px 20px; border-radius:var(--r-lg);
+  background:var(--glass-bg); border:1px solid var(--glass-border);
+  backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+  transition:transform .25s ease, background .25s ease, border-color .25s ease, box-shadow .25s ease;
+  display:flex; flex-direction:column; gap:10px; min-height:128px;
+}
+.card:hover{
+  transform:translateY(-3px);
+  background:var(--glass-bg-hover); border-color:var(--glass-border-hover);
+  box-shadow:0 18px 40px -18px rgba(124,92,196,0.45);
+}
+.card-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+.card-title{font-size:15.5px; font-weight:700; color:var(--ink); line-height:1.35;}
+.role-chip{
+  flex-shrink:0; font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500;
+  padding:4px 9px; border-radius:999px; white-space:nowrap;
+  border:1px solid currentColor; opacity:.9;
+}
+.card-hint{font-size:13px; color:var(--ink-faint); line-height:1.5;}
+.card-arrow{margin-top:auto; font-size:12px; color:var(--violet); display:flex; align-items:center; gap:6px; opacity:0; transform:translateX(-4px); transition:.2s;}
+.card:hover .card-arrow{opacity:1; transform:translateX(0);}
+
+/* role colors */
+.r0{color:var(--slate);}
+.r1{color:var(--sky);}
+.r2{color:var(--violet);}
+.r3{color:var(--purple-deep);}
+.r4{color:var(--gold);}
+
+footer{padding:60px 0 80px; text-align:center; color:var(--ink-faint); font-size:12.5px;}
+
+/* ---------- DETAIL OVERLAY ---------- */
+#detail{
+  position:fixed; inset:0; z-index:50; display:none;
+  background:
+    radial-gradient(900px 600px at 15% 0%, rgba(124,92,196,0.30), transparent 60%),
+    var(--bg-0);
+  overflow-y:auto;
+}
+#detail.open{display:block; animation:fadein .28s ease;}
+@keyframes fadein{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+.detail-wrap{max-width:820px; margin:0 auto; padding:56px 28px 100px; position:relative; z-index:1;}
+.back-btn{
+  display:inline-flex; align-items:center; gap:8px; font-size:13.5px; color:var(--ink-dim);
+  background:var(--glass-bg); border:1px solid var(--glass-border); padding:9px 16px 9px 12px;
+  border-radius:999px; cursor:pointer; backdrop-filter:blur(14px); transition:.2s;
+}
+.back-btn:hover{color:var(--violet); border-color:var(--glass-border-hover);}
+.detail-head{margin-top:32px;}
+.detail-crumb{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--violet-soft); text-transform:uppercase; letter-spacing:.06em;}
+.detail-title{font-family:'Cinzel', serif; font-weight:700; font-size:clamp(28px,4vw,42px); margin-top:10px; line-height:1.15; color:var(--ink);}
+.detail-role{
+  display:inline-flex; align-items:center; gap:7px; margin-top:18px; font-family:'JetBrains Mono',monospace;
+  font-size:12.5px; padding:7px 14px; border-radius:999px; border:1px solid currentColor;
+}
+.detail-body{margin-top:38px; display:flex; flex-direction:column; gap:14px;}
+.step{
+  display:flex; gap:16px; padding:18px 20px; border-radius:var(--r-md);
+  background:var(--glass-bg); border:1px solid var(--glass-border);
+  backdrop-filter:blur(14px);
+}
+.step-num{
+  flex-shrink:0; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-family:'JetBrains Mono',monospace; font-weight:600; font-size:13px;
+  background:linear-gradient(135deg, rgba(167,139,250,0.35), rgba(232,185,84,0.18));
+  color:var(--ink); border:1px solid var(--glass-border-hover);
+}
+.step-text{font-size:15px; line-height:1.65; color:var(--ink-dim); padding-top:3px;}
+.step-text code, .card-hint code{
+  font-family:'JetBrains Mono',monospace; font-size:.92em; color:var(--gold);
+  background:rgba(232,185,84,0.09); padding:1px 6px; border-radius:5px;
+}
+.note-box{
+  margin-top:8px; padding:16px 20px; border-radius:var(--r-md);
+  background:rgba(167,139,250,0.06); border:1px dashed var(--glass-border-hover);
+  font-size:13.5px; line-height:1.65; color:var(--ink-dim);
+}
+.note-box b{color:var(--violet);}
+.detail-related{margin-top:48px;}
+.related-label{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-faint); margin-bottom:14px;}
+
+@media (max-width:640px){
+  .wrap{padding:0 18px;}
+  header.hero{padding:56px 0 30px;}
+  .section{padding:40px 0 4px;}
+  .card-grid{grid-template-columns:1fr;}
+}
+:focus-visible{outline:2px solid var(--violet); outline-offset:3px;}
+@media (prefers-reduced-motion: reduce){*{transition:none !important; animation:none !important;}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="crest-row" id="crestRow"></div>
+    <div class="brand-line">
+      <div class="brand-mark">FSM</div>
+      <div class="brand-sub">Fernie Server Mod</div>
+    </div>
+    <p class="hero-desc">
+      <b>FSM (Fernie Server Mod)</b> — комплексный серверный мод для <b>Fabric 1.20.1</b>, превращающий обычный
+      сервер в полноценный ролевой/RPG-проект: экономика, роли, защита территорий, тюрьма, аукцион, казино,
+      встроенный ИИ-помощник по игре (<code style="font-family:'JetBrains Mono',monospace;color:var(--gold);background:rgba(232,185,84,0.09);padding:1px 6px;border-radius:5px;">/ai</code>),
+      NPC-магазины и многое другое — всё из коробки, без необходимости ставить десяток отдельных плагинов.
+    </p>
+    <div class="hero-tags">
+      <span class="hero-tag">Fabric · 1.20.1</span>
+      <span class="hero-tag">5 уровней ролей</span>
+      <span class="hero-tag">Экономика и аукцион</span>
+      <span class="hero-tag">Приваты территорий</span>
+      <span class="hero-tag">ИИ-помощник /ai</span>
+      <span class="hero-tag">Казино и клады</span>
+    </div>
+    <nav class="jumpnav" id="jumpnav"></nav>
+  </header>
+
+  <main id="main"></main>
+
+  <footer>FSM — инструкция по командам · роли 0 Игрок → 4 Владелец</footer>
+</div>
+
+<div id="detail">
+  <div class="detail-wrap">
+    <button class="back-btn" onclick="closeDetail()">&larr; Назад к разделам</button>
+    <div class="detail-head">
+      <div class="detail-crumb" id="dCrumb"></div>
+      <h1 class="detail-title" id="dTitle"></h1>
+      <div class="detail-role" id="dRole"></div>
+    </div>
+    <div class="detail-body" id="dBody"></div>
+    <div class="detail-related" id="dRelated"></div>
+  </div>
+</div>
+
+<script>
+const ROLES = {
+  any:  {label:'Без ограничений', cls:'r0'},
+  0:    {label:'Роль: Игрок',        cls:'r0'},
+  1:    {label:'Роль: Модератор+',   cls:'r1'},
+  2:    {label:'Роль: Администратор+', cls:'r2'},
+  3:    {label:'Роль: Ст. Админ+',   cls:'r3'},
+  4:    {label:'Роль: Владелец',     cls:'r4'},
+  file: {label:'Настройка файлов',   cls:'r4'},
+};
+
+const DATA = [
+  {
+    id:'perms', title:'Права и роли', num:'01',
+    items:[
+      {id:'owner-pass', title:'Установка пароля владельца', role:'file',
+        hint:'owner_parametres — базовый файл конфигурации мода',
+        steps:[
+          'Установить мод на сервер и запустить его.',
+          'Зайти в игру для прогрузки мода.',
+          'Вернуться в файлы мода и найти папку <code>ferniecraft</code>.',
+          'В папке найти файл <code>owner_parametres</code>.',
+          'Установить пароль в поле <code>password:</code>.'
+        ]},
+      {id:'owner-claim', title:'Получение прав владельца по паролю', role:0,
+        hint:'/owner &lt;пароль&gt; — выдача роли Владельца',
+        steps:[
+          'Ввести в чате команду <code>/owner &lt;пароль&gt;</code>.',
+          'Если пароль совпадает с указанным в <code>owner_parametres</code> — игроку автоматически выдаётся роль Владельца, а его ник добавляется в список владельцев в этом файле.',
+          'Если пароль неверный — попытка логируется в консоль сервера.'
+        ],
+        note:'Команду можно перечитать без рестарта сервера командой <b>/owner-reload</b> (только консоль/оп 4) — она заново прочитает файл <code>owner_parametres</code>.'},
+      {id:'role-manage', title:'Выдача/просмотр роли игрока', role:4,
+        hint:'/role &lt;ник&gt; — просмотр и назначение роли',
+        steps:[
+          'Иметь роль Владельца (4).',
+          'Ввести <code>/role &lt;ник&gt;</code> — покажется текущая роль игрока и кликабельные кнопки для назначения новой роли.',
+          'Либо сразу ввести <code>/role &lt;ник&gt; &lt;0-4&gt;</code>, где: 0 — Игрок, 1 — Модератор, 2 — Администратор, 3 — Ст. Админ, 4 — Владелец.',
+          'Игрок с ролью ниже Владельца не может назначить роль выше или равную своей собственной.'
+        ]},
+    ]
+  },
+  {
+    id:'auth', title:'Регистрация и вход', num:'02',
+    items:[
+      {id:'reg', title:'Регистрация аккаунта', role:'any',
+        hint:'/reg &lt;пароль&gt; — минимум 4 символа',
+        steps:[
+          'Зайти на сервер (система регистрации должна быть включена командой <code>/mlog on</code>).',
+          'Ввести <code>/reg &lt;пароль&gt;</code> (минимум 4 символа).',
+          'После успешной регистрации персонаж автоматически считается авторизованным и телепортируется по очереди из <code>LoginTracker</code>.'
+        ]},
+      {id:'login', title:'Вход в существующий аккаунт', role:'any',
+        hint:'/login &lt;пароль&gt;',
+        steps:[
+          'Ввести <code>/login &lt;пароль&gt;</code>.',
+          'Если пароль верный — доступ к серверу открывается (до этого действия игрока ограничены).'
+        ]},
+      {id:'setposreg', title:'Установка точки телепорта для незалогиненных', role:4,
+        hint:'/setposreg — точка для неавторизованных игроков',
+        steps:[
+          'Иметь роль Владельца (4).',
+          'Встать на нужном месте.',
+          'Ввести <code>/setposreg</code> — точка регистрации устанавливается на текущей позиции.'
+        ]},
+      {id:'mlog', title:'Включение/выключение системы регистрации', role:4,
+        hint:'/mlog on / off — обязательная регистрация',
+        steps:[
+          'Иметь роль Владельца (4).',
+          'Ввести <code>/mlog</code> — покажет текущий статус (ВКЛ/ВЫКЛ).',
+          'Ввести <code>/mlog on</code> или <code>/mlog off</code>, чтобы включить/выключить обязательную регистрацию.'
+        ]},
+    ]
+  },
+  {
+    id:'teleport', title:'Телепортация', num:'03',
+    items:[
+      {id:'home', title:'Установка и использование дома', role:'any',
+        hint:'/sethome, /home',
+        steps:[
+          'Встать на нужной позиции.',
+          'Ввести <code>/sethome</code> — точка дома сохраняется.',
+          'В любой момент ввести <code>/home</code> для телепорта к сохранённой точке (недоступно, если игрок в тюрьме).'
+        ]},
+      {id:'warp', title:'Серверные варпы (точки телепорта)', role:4,
+        hint:'/warp add, /warp list, /warp delete',
+        steps:[
+          'Иметь роль Владельца (4).',
+          'Встать на нужной позиции.',
+          'Ввести <code>/warp add &lt;название&gt;</code>.',
+          'Просмотр всех варпов — <code>/warp list</code>.',
+          'Телепорт к варпу — <code>/warp &lt;название&gt;</code>.',
+          'Удаление — <code>/warp delete &lt;название&gt;</code> (только Владелец).'
+        ]},
+      {id:'mywarp', title:'Личные варпы игрока', role:'any',
+        hint:'/mywarp add, list, delete',
+        steps:[
+          'Встать на нужной позиции.',
+          'Ввести <code>/mywarp add &lt;название&gt;</code>.',
+          'Список своих варпов — <code>/mywarp list</code>.',
+          'Телепорт — <code>/mywarp &lt;название&gt;</code>.',
+          'Удаление — <code>/mywarp delete &lt;название&gt;</code>.'
+        ]},
+      {id:'ptp', title:'Запрос телепорта к игроку (PTP)', role:'any',
+        hint:'/ptp — запрос с подтверждением и отсчётом',
+        steps:[
+          'Ввести <code>/ptp &lt;ник&gt;</code> — игроку отправляется запрос.',
+          'Целевой игрок должен нажать кнопку «Принять» в чате или ввести <code>/ptpaccept &lt;ник отправителя&gt;</code>.',
+          'После принятия запускается 5-секундный обратный отсчёт, по завершении которого отправитель телепортируется к цели.',
+          'Отклонить запрос можно кнопкой «Отклонить» или командой <code>/ptpdecline &lt;ник&gt;</code>.',
+          'Отменить свой запрос — <code>/ptpcancel</code>.'
+        ],
+        note:'Запрос автоматически истекает через 30 секунд, если его не приняли/не отклонили.'},
+      {id:'rtp', title:'Случайная телепортация (RTP)', role:'any',
+        hint:'/rtp — радиус 5000 блоков, кулдаун 5 минут',
+        steps:[
+          'Ввести <code>/rtp</code>.',
+          'Игрока перемещает в случайную точку в радиусе 5000 блоков от центра карты (на поверхность).',
+          'Между использованиями действует перезарядка 5 минут.'
+        ]},
+      {id:'spawn', title:'Спавн сервера', role:'any',
+        hint:'/spawn, /serverspawn — установка и телепорт',
+        steps:[
+          'Ввести <code>/spawn</code> (недоступно в тюрьме). Если спавн ещё не задан — команда сообщит об ошибке.',
+          'Для установки точки спавна — иметь роль Владельца (4).',
+          'Встать на нужной позиции и ввести <code>/serverspawn</code> — спавн установится на текущем месте.',
+          'Либо задать координаты вручную: <code>/serverspawn &lt;x&gt; &lt;y&gt; &lt;z&gt;</code>.',
+          'Телепортировать других игроков на спавн (роль 1+): <code>/spawn &lt;ник1&gt; &lt;ник2&gt; ...</code>.'
+        ]},
+      {id:'g-gh', title:'Телепорт администратора к игроку / игрока к администратору', role:1,
+        hint:'/g и /gh',
+        steps:[
+          'Иметь роль Модератор (1) и выше.',
+          '<code>/g &lt;ник&gt;</code> — телепортироваться к указанному игроку.',
+          '<code>/gh &lt;ник&gt;</code> — телепортировать указанного игрока к себе.'
+        ]},
+      {id:'stp', title:'Тихая телепортация (без эффектов, для проверок)', role:3,
+        hint:'/stp — незаметная проверка на читы',
+        steps:[
+          'Иметь роль Ст. Админ (3) и выше.',
+          'Ввести <code>/stp &lt;ник&gt;</code> — админ мгновенно и незаметно телепортируется к игроку (например, для скрытой проверки на читы).'
+        ]},
+    ]
+  },
+  {
+    id:'private', title:'Приватные территории', num:'04',
+    items:[
+      {id:'private-create', title:'Создание привата', role:'any',
+        hint:'/pos1, /pos2, /private add',
+        steps:[
+          'Встать в первом углу нужной зоны и ввести <code>/pos1</code>.',
+          'Встать во втором (противоположном) углу и ввести <code>/pos2</code>.',
+          'Ввести <code>/private add &lt;название&gt;</code> — создаётся приват в виде параллелепипеда между двумя точками.'
+        ],
+        note:'Лимит количества приватов на игрока ограничен (<b>PrivateManager.MAX_PRIVATES</b>); нельзя создать приват поверх чужого привата или зоны автошахты.'},
+      {id:'private-manage', title:'Управление приватом', role:'any',
+        hint:'/private list, invite, uninvite, delete',
+        steps:[
+          'Просмотр своих приватов — <code>/private list</code>.',
+          'Пригласить игрока в приват — <code>/private invite &lt;ник&gt; &lt;название привата&gt;</code> (доступ к строительству/взаимодействию внутри зоны).',
+          'Убрать игрока из привата — <code>/private uninvite &lt;ник&gt; &lt;название привата&gt;</code>.',
+          'Удалить приват — <code>/private delete &lt;название&gt;</code>.'
+        ]},
+    ]
+  },
+  {
+    id:'economy', title:'Экономика', num:'05',
+    items:[
+      {id:'pay', title:'Перевод денег между игроками', role:'any',
+        hint:'/pay &lt;ник&gt; &lt;сумма&gt;',
+        steps:[
+          'Ввести <code>/pay &lt;ник&gt; &lt;сумма&gt;</code> (минимум 0.01).',
+          'Сумма списывается у отправителя и зачисляется получателю.'
+        ]},
+      {id:'gmoney', title:'Выдача/списание денег администрацией', role:4,
+        hint:'/gmoney &lt;ник&gt; &lt;сумма&gt;',
+        steps:[
+          'Иметь роль Владельца (4).',
+          'Ввести <code>/gmoney &lt;ник&gt; &lt;сумма&gt;</code> — выдать или списать деньги игроку напрямую (без списания у себя).'
+        ]},
+      {id:'ah', title:'Аукцион (Auction House)', role:'any',
+        hint:'/ah sell, my, expired, remove, help',
+        steps:[
+          'Держать предмет в руке.',
+          'Ввести <code>/ah sell &lt;цена&gt;</code> — предмет выставляется на продажу.',
+          'Просмотр своих лотов — <code>/ah my</code>.',
+          'Просмотр истёкших (непроданных/невыкупленных) лотов — <code>/ah expired</code>.',
+          'Снять лот с продажи — <code>/ah remove &lt;id лота&gt;</code>.',
+          'Справка по командам — <code>/ah help</code>.',
+          'Перечитать конфигурацию аукциона (роль Администратор 2+) — <code>/ah reload</code>.'
+        ]},
+    ]
+  },
+  {
+    id:'moderation', title:'Модерация', num:'06',
+    items:[
+      {id:'mban', title:'Бан игрока (по времени)', role:3,
+        hint:'/mban &lt;ник&gt; &lt;время&gt; &lt;m/h/d&gt; &lt;причина&gt;',
+        steps:[
+          'Иметь роль Ст. Админ (3) и выше.',
+          'Ввести <code>/mban &lt;ник&gt; &lt;время&gt; &lt;единица: m/h/d&gt; &lt;причина&gt;</code>.',
+          'Игрок кикается с сервера с указанием причины и срока бана.'
+        ]},
+      {id:'miban', title:'IP-бан', role:1,
+        hint:'/miban &lt;ник&gt;',
+        steps:[
+          'Иметь роль Модератор (1) и выше.',
+          'Ввести <code>/miban &lt;ник&gt;</code> — блокировка по IP.'
+        ]},
+      {id:'munban', title:'Разбан', role:3,
+        hint:'/munban &lt;ник&gt;',
+        steps:[
+          'Иметь роль Ст. Админ (3) и выше.',
+          'Ввести <code>/munban &lt;ник&gt;</code>.'
+        ]},
+      {id:'jail', title:'Тюрьма (Jail)', role:2,
+        hint:'/jail &lt;ник&gt; &lt;время&gt; &lt;m/h&gt; &lt;причина&gt;',
+        steps:[
+          'Иметь роль Администратор (2) и выше.',
+          'Предварительно должна быть установлена точка тюрьмы командой <code>/demorgan add</code>.',
+          'Ввести <code>/jail &lt;ник&gt; &lt;время от 1 до 1440&gt; &lt;единица: m/h&gt; &lt;причина&gt;</code>.',
+          'Игрок телепортируется в точку тюрьмы; во время заключения ему недоступны команды телепортации (<code>/home</code>, <code>/warp</code>, <code>/spawn</code> и т.д.), при попытке использования показывается предупреждающий титр «⛓ ВЫ В ТЮРЬМЕ ⛓».',
+          'По истечении срока игрок освобождается автоматически (проверка каждый тик сервера).'
+        ]},
+      {id:'unjail', title:'Досрочное освобождение', role:2,
+        hint:'/unjail &lt;ник&gt; &lt;причина&gt;',
+        steps:[
+          'Иметь роль Администратор (2) и выше.',
+          'Ввести <code>/unjail &lt;ник&gt; &lt;причина&gt;</code>.'
+        ]},
+      {id:'demorgan', title:'Точка тюрьмы (Demorgan)', role:4,
+        hint:'/demorgan add / delete / tp',
+        steps:[
+          'Иметь роль Владельца (4) для настройки точки заключения.',
+          'Встать в нужном месте и ввести <code>/demorgan add</code> — точка тюрьмы сохраняется.',
+          'Удалить точку — <code>/demorgan delete</code>.',
+          'Телепортироваться к точке тюрьмы для проверки (роль Администратор 2+) — <code>/demorgan tp</code>.'
+        ]},
+      {id:'admins', title:'Список администрации', role:'any',
+        hint:'/admins',
+        steps:[
+          'Ввести <code>/admins</code> — выведется список игроков, сгруппированный по ролям (Модератор и выше).'
+        ]},
+    ]
+  },
+  {
+    id:'npc', title:'NPC и торговля', num:'07',
+    items:[
+      {id:'buyer-npc', title:'Создание NPC-скупщика (Buyer)', role:4,
+        hint:'/buyer npc add, /npc position',
+        steps:[
+          'Иметь роль Владельца (4).',
+          'Посмотреть на существующего жителя (Villager) или встать в точке создания.',
+          'Ввести <code>/buyer npc add &lt;имя&gt;</code> (или через <code>/npc add &lt;имя&gt;</code>) — создаётся именованный NPC-скупщик.',
+          'Удалить NPC — <code>/buyer npc delete &lt;имя&gt;</code> (или <code>/npc delete &lt;имя&gt;</code>).',
+          'Задать позицию/поворот существующего NPC — <code>/npc position &lt;yaw&gt; &lt;имя&gt;</code>.',
+          'При взаимодействии с NPC у игрока открывается меню скупки (<code>BuyerMenu</code>), где можно продавать предметы за игровую валюту.'
+        ]},
+    ]
+  },
+  {
+    id:'minigames', title:'Мини-игры', num:'08',
+    items:[
+      {id:'casino', title:'Казино', role:4,
+        hint:'/pointcasino, /casino',
+        steps:[
+          'Иметь роль Владельца/Администратора для настройки точки телепортации в казино.',
+          'Встать в центре зоны казино.',
+          'Ввести <code>/pointcasino &lt;радиус по горизонтали&gt; &lt;радиус вверх&gt; &lt;радиус вниз&gt;</code> — задаётся зона, в которой будет работать телепорт в казино.',
+          'Игроки заходят в казино командой <code>/casino</code> — открывается меню с мини-играми: слот-машина (<code>SlotMachineMenu</code>), чёт/нечет (<code>EvenOddMenu</code>).'
+        ]},
+      {id:'treasure', title:'Клады (Treasure)', role:4,
+        hint:'/treasure start / status / stop',
+        steps:[
+          'Иметь роль Владельца (4) для запуска ивента.',
+          'Ввести <code>/treasure start</code> — на карте появляется клад, о котором оповещаются игроки.',
+          'Проверить статус текущего клада — <code>/treasure status</code> (доступно всем).',
+          'Остановить активный ивент — <code>/treasure stop</code>.'
+        ]},
+    ]
+  },
+  {
+    id:'automation', title:'Автоматизация и обслуживание сервера', num:'09',
+    items:[
+      {id:'automine', title:'Автошахта (AutoMine)', role:4,
+        hint:'/automine pos1/pos2/add/status/delete',
+        steps:[
+          'Иметь роль Владельца (4).',
+          'Встать в первом углу зоны и ввести <code>/automine pos1</code>.',
+          'Встать во втором углу и ввести <code>/automine pos2</code>.',
+          'Ввести <code>/automine add</code> — зона сохраняется и начинает автоматически регенерировать блоки/руду.',
+          'Проверить статус — <code>/automine status</code>.',
+          'Включить/выключить — <code>/automine status &lt;on/off&gt;</code>.',
+          'Удалить зону — <code>/automine delete</code>.'
+        ],
+        note:'Приваты (см. раздел «Приватные территории») нельзя создавать внутри зоны автошахты.'},
+      {id:'time-weather', title:'Управление временем и погодой', role:2,
+        hint:'/day, /night, /rain, /storm, /wclear',
+        steps:[
+          'Иметь роль Администратор (2) и выше.',
+          '<code>/day</code> — установить дневное время.',
+          '<code>/night</code> — установить ночное время.',
+          '<code>/sunrise</code> / <code>/sunset</code> — установить рассвет/закат.',
+          '<code>/rain</code> — включить дождь.',
+          '<code>/storm</code> — включить грозу.',
+          '<code>/wclear</code> — очистить погоду.'
+        ]},
+      {id:'gamemode', title:'Игровой режим (Gamemode)', role:2,
+        hint:'/gm &lt;режим&gt;',
+        steps:[
+          'Иметь роль Администратор (2) и выше.',
+          'Ввести <code>/gm &lt;режим&gt;</code> (survival/creative/adventure/spectator и т.п.).'
+        ]},
+      {id:'immortality', title:'Бессмертие', role:1,
+        hint:'/immortality &lt;цель&gt; on/off',
+        steps:[
+          'Иметь роль Модератор (1) и выше.',
+          'Ввести <code>/immortality &lt;цель(-и)&gt; &lt;on/off&gt;</code> — выбранным существам/игрокам выдаётся или снимается неуязвимость.'
+        ]},
+      {id:'modname', title:'Имя мода (бренд сервера)', role:4,
+        hint:'/modname &lt;новое название&gt;',
+        steps:[
+          'Иметь роль Владельца (4).',
+          'Ввести <code>/modname &lt;новое название&gt;</code> — все системные сообщения мода (<code>§b[Название] ...</code>) будут использовать новое имя.'
+        ]},
+    ]
+  },
+  {
+    id:'misc', title:'Прочее', num:'10',
+    items:[
+      {id:'ai', title:'AI-чат / помощник', role:'any',
+        hint:'/ai select, /ai &lt;запрос&gt;',
+        steps:[
+          'Ввести <code>/ai select &lt;модель&gt;</code> — выбрать используемую ИИ-модель (если поддерживается несколько).',
+          'Ввести <code>/ai &lt;текст запроса&gt;</code> — отправить запрос ИИ-помощнику, ответ придёт в чат/action bar.'
+        ]},
+      {id:'ahelp', title:'Помощь администрации (Ahelp)', role:1,
+        hint:'/ahelp',
+        steps:[
+          'Иметь роль Модератор (1) и выше.',
+          'Ввести <code>/ahelp</code> — выводится список доступных админ-команд с кратким описанием (справочное меню).'
+        ]},
+    ]
+  },
+];
+
+// ---------- render ----------
+const main = document.getElementById('main');
+const jumpnav = document.getElementById('jumpnav');
+const crestRow = document.getElementById('crestRow');
+
+const TIERS = [
+  {n:0,label:'Игрок',cls:'r0'},
+  {n:1,label:'Модератор',cls:'r1'},
+  {n:2,label:'Администратор',cls:'r2'},
+  {n:3,label:'Ст. Админ',cls:'r3'},
+  {n:4,label:'Владелец',cls:'r4'},
+];
+crestRow.innerHTML = TIERS.map((t,i)=>
+  `<div class="crest-tier ${t.cls}"><span class="crest-dot" style="background:currentColor"></span>${t.n} · ${t.label}</div>${i<TIERS.length-1?'<span class="crest-arrow">&rarr;</span>':''}`
+).join('');
+
+jumpnav.innerHTML = DATA.map(c=>`<a href="#${c.id}">${c.title}</a>`).join('');
+
+main.innerHTML = DATA.map(cat=>`
+  <section class="section" id="${cat.id}">
+    <div class="section-head">
+      <span class="section-num">${cat.num}</span>
+      <h2 class="section-title">${cat.title}</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="card-grid">
+      ${cat.items.map(it=>`
+        <button class="card" onclick="openDetail('${cat.id}','${it.id}')">
+          <div class="card-top">
+            <span class="card-title">${it.title}</span>
+            <span class="role-chip ${ROLES[it.role].cls}">${ROLES[it.role].label.replace('Роль: ','')}</span>
+          </div>
+          <div class="card-hint">${it.hint}</div>
+          <div class="card-arrow">Открыть описание &rarr;</div>
+        </button>
+      `).join('')}
+    </div>
+  </section>
+`).join('');
+
+function findItem(catId, itemId){
+  const cat = DATA.find(c=>c.id===catId);
+  const item = cat.items.find(i=>i.id===itemId);
+  return {cat,item};
+}
+
+function openDetail(catId, itemId){
+  const {cat,item} = findItem(catId,itemId);
+  document.getElementById('dCrumb').textContent = cat.title;
+  document.getElementById('dTitle').textContent = item.title;
+  const roleInfo = ROLES[item.role];
+  const dRole = document.getElementById('dRole');
+  dRole.className = 'detail-role ' + roleInfo.cls;
+  dRole.textContent = roleInfo.label;
+  document.getElementById('dBody').innerHTML =
+    item.steps.map((s,i)=>`<div class="step"><div class="step-num">${i+1}</div><div class="step-text">${s}</div></div>`).join('')
+    + (item.note ? `<div class="note-box">${item.note}</div>` : '');
+
+  const others = cat.items.filter(i=>i.id!==itemId);
+  document.getElementById('dRelated').innerHTML = others.length ? `
+    <div class="related-label">Ещё в разделе «${cat.title}»</div>
+    <div class="card-grid">
+      ${others.map(o=>`
+        <button class="card" onclick="openDetail('${cat.id}','${o.id}')">
+          <div class="card-top">
+            <span class="card-title">${o.title}</span>
+            <span class="role-chip ${ROLES[o.role].cls}">${ROLES[o.role].label.replace('Роль: ','')}</span>
+          </div>
+          <div class="card-hint">${o.hint}</div>
+          <div class="card-arrow">Открыть описание &rarr;</div>
+        </button>
+      `).join('')}
+    </div>` : '';
+
+  document.getElementById('detail').classList.add('open');
+  document.getElementById('detail').scrollTop = 0;
+  window.location.hash = `${catId}/${itemId}`;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail(){
+  document.getElementById('detail').classList.remove('open');
+  document.body.style.overflow = '';
+  history.replaceState(null,'',window.location.pathname);
+}
+
+// deep-link support
+window.addEventListener('load', ()=>{
+  const h = window.location.hash.replace('#','');
+  if(h.includes('/')){
+    const [c,i] = h.split('/');
+    if(DATA.find(x=>x.id===c)?.items.find(x=>x.id===i)) openDetail(c,i);
+  }
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDetail(); });
+</script>
+</body>
+</html>
